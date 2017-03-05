@@ -98,10 +98,10 @@ let makeBoard cnt steps =
             (board, i+1)) (empty, 0)
         |> fun (board, _) -> board
 
-let applySteps init steps =
+let applySteps init steps initMaxSeq =
     steps
         |> List.fold(fun (board, i) fall ->
-            let board = put board (fall.row, fall.col, i)
+            let board = put board (fall.row, fall.col, (i+initMaxSeq+1))
             (board, i+1)) (init, 0)
         |> fun (board, _) -> board
 
@@ -181,6 +181,14 @@ let removeVariety kfRoot (track:int list) remk =
             ((i+1), kfSteps@lnext)) (0, [])
         |> fun (_, lnext) -> lnext) kfRoot track
 
+let initSeq (board : CrossPoint[,]) =
+    let mutable max = 0
+    for r = 0 to 18 do
+        for c = 0 to 18 do
+            let seq = board.[r, c].seq
+            if max < seq then max <- seq
+    max
+
 let nextStep nextk state init =
     let cursor = state.Cursor
     match state.KfNext with
@@ -192,7 +200,7 @@ let nextStep nextk state init =
         | _ ->
             let track = cursor.Track@[nextk]
             let (kf, steps) = trackSteps variety track
-            let board = applySteps init steps
+            let board = applySteps init steps (initSeq init)
             { state with Board = board; Cursor = { cursor with Track = track } }
     
 let prevStep state init =
@@ -206,7 +214,7 @@ let prevStep state init =
         | tk ->
             let track = List.init (tk.Length-1) (fun i -> tk.[i])
             let (kf, steps) = trackSteps variety track
-            let board = applySteps init steps
+            let board = applySteps init steps (initSeq init)
             { state with
                 Board  = board
                 Cursor = { cursor with Track = track; Branch = 0 }
@@ -229,7 +237,7 @@ let putSimple r c tk (state:KifuState) init =
     let kfRoot = [genNext state.KfNext 0]
     let track = state.Cursor.Track @ [0]
     let (_, steps) = trackSteps kfRoot track
-    let board = applySteps init steps
+    let board = applySteps init steps (initSeq init)
     { state with
         KfNext = kfRoot
         Board  = board

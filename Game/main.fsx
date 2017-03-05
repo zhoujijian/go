@@ -44,10 +44,10 @@ module GoGame =
                 e.Graphics.DrawLine(Pens.Gray, new PointF(startx, y), new PointF(extend, y))
                 e.Graphics.DrawLine(Pens.Gray, new PointF(x, starty), new PointF(x, extend))
 
-            let getColor cs =
+            let getColor cs seqStart =
                 match cs.seq with
                 | q when q>=0 ->
-                    let number = cs.seq.ToString()
+                    let number = (cs.seq - seqStart).ToString()
                     match cs.side with
                     | 0 -> Some(Brushes.White, Brushes.Black, Pens.Black, number)
                     | 1 -> Some(Brushes.Black, Brushes.White, Pens.White, number)
@@ -55,12 +55,12 @@ module GoGame =
                 | _ -> None
 
             let font = new Font("Consolas", 10.0f)
-            let drawBoard (board:CrossPoint[,]) numVisible =
+            let drawBoard (board:CrossPoint[,]) numVisible seqStart =
                 for r=0 to 18 do
                     for c=0 to 18 do
                         let x = startx+30.0f*(float32 r)-rad1
                         let y = starty+30.0f*(float32 c)-rad1
-                        match getColor board.[r,c] with
+                        match getColor board.[r,c] seqStart with
                         | Some(brush0, brush1, pen, number) ->
                             e.Graphics.FillEllipse(brush0, x, y, rad2, rad2)
                             e.Graphics.DrawEllipse(pen, x, y, rad2, rad2)
@@ -72,8 +72,8 @@ module GoGame =
                                 e.Graphics.DrawString(number, font, brush1, x-rect.Width/2.0f, y-rect.Height/2.0f)
                         | None -> ()
             
-            drawBoard ((!play).Current.Board) true
-            drawBoard ((!play).Restore.Board) false // restore board overwrite current board
+            drawBoard ((!play).Current.Board) true ((initSeq (!play).Restore.Board) + 1)
+            drawBoard ((!play).Restore.Board) false 0 // restore board overwrite current board
         
         let showBranch() =
             form.lstVariety.Items.Clear()
