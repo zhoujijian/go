@@ -117,6 +117,8 @@ type KifuStep = {
     Next : KifuStep list
 }
 
+type KifuNode = |KifuRoot of Cross |KifuNext of KifuStep
+
 type KifuCursor = {
     Track : int list
     Branch : int
@@ -174,10 +176,7 @@ let removeVariety kfRoot (track:int list) remk =
         kfNext
         |> List.fold(fun acc next ->
             let (i, kfSteps) = acc
-            let lnext =
-                match i=remk with
-                | true  -> []
-                | false -> [next]
+            let lnext = if i=remk then [] else [next]
             ((i+1), kfSteps@lnext)) (0, [])
         |> fun (_, lnext) -> lnext) kfRoot track
 
@@ -220,8 +219,8 @@ let prevStep state init =
                 Cursor = { cursor with Track = track; Branch = 0 }
             }
 
-let putSimple r c tk (state:KifuState) init =
-    let rec genNext (kfNext:KifuStep list) nextk =
+let putSimple (r:int) (c:int) (tk:int) (state:KifuState) (init:CrossPoint [,]) : KifuState =
+    let rec genNext (kfNext:KifuStep list) (nextk:int) : KifuStep =
         assert (kfNext.Length <= 1)
         assert (nextk <= tk)
         match nextk = tk with
@@ -243,6 +242,19 @@ let putSimple r c tk (state:KifuState) init =
         Board  = board
         Cursor = { state.Cursor with Track = track; Branch = 0; }
     }
+
+let rec applyStep (root:KifuStep) (track:int list) (apply:KifuStep->KifuStep) : KifuStep =
+    match track with
+    | [] -> root
+    | k::t ->
+        if k >= (List.length root.Next) then failwith "parameter out range"
+        let next =
+            root.Next |> List.mapi (fun (i:int) (step:KifuStep) ->
+                match i<>k with
+                | true -> step
+                | _ ->
+                    match t with | [] -> apply step | t -> applyStep step t apply )
+        { root with Next = next }
 
 let putStep waycnt r c tk (state:KifuState) =
     let track = state.Cursor.Track
@@ -322,6 +334,8 @@ with
             let tk = x.Current.Cursor.Track.Length
             let current = putSimple r c tk x.Current x.Restore.Board
             { x with Current = current }
+
+    member x.SetNote (note:string) = ()
 
     member x.BeginVariety() =
         let current = GameData.Init [] x.Current.Board

@@ -1,11 +1,9 @@
-﻿#load "game.fs"
+﻿open GoWin
+open Game
+open Kifu
+open GamePlay.AsyncExtensions
 
 module GoGame =
-    open GoWin
-    open Game
-    open Kifu
-    open GamePlay.AsyncExtensions
-
     open System
     open System.Windows.Forms
     open System.Drawing
@@ -18,11 +16,7 @@ module GoGame =
     let CANCEL_RESEARCH = "Cancel"
 
     let main() =
-        let form = new GoWindow()
-        let opendlg = new OpenFileDialog()
-        let savedlg = new SaveFileDialog()
-        opendlg.Filter <- "kifu(*.json)|*.json"
-        savedlg.Filter <- "kifu(*.json)|*.json"
+        let (form:GoWindow) = new GoWindow()
 
         let (putClick : IDisposable ref) = ref null
         let play = ref (GameData.Create {
@@ -104,10 +98,10 @@ module GoGame =
             showBranch()
             form.panelDraw.Invalidate() )
 
-        (*form.OnClosing.Add(fun e ->
-            if form.butResearch.Text = "Cancel" then
-                MessageBox.Show("Stop Research First!")
-                e.Cancel <- true ) *)
+        let opendlg = new OpenFileDialog()
+        let savedlg = new SaveFileDialog()
+        opendlg.Filter <- "kifu(*.json)|*.json"
+        savedlg.Filter <- "kifu(*.json)|*.json"
 
         form.saveKifu.Click.Add(fun e ->
             savedlg.FileName <- ""
@@ -156,6 +150,7 @@ module GoGame =
                                 form.lstVariety.Enabled <- false
                                 putClick := form.panelDraw.MouseClick.Subscribe(onPut)
                                 play := (!play).BeginVariety()
+
                             | text ->
                                 assert (text = "Cancel")
                                 form.butResearch.Text <- RESEARCH
