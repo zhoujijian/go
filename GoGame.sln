@@ -5,9 +5,9 @@ VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Window", "Window\Window.csproj", "{5E51E68F-9D8A-4A18-8589-839D4FD02EAC}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Game", "Game\Game.fsproj", "{1AC6DE8A-95E1-43BD-909B-8E2D9AC0000D}"
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Game", "Game\Game.fsproj", "{1AC6DE8A-95E1-43BD-909B-8E2D9AC0000D}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MiniJson", "MiniJson\MiniJson.fsproj", "{68C7233E-B616-4233-A3B8-6881F11DFB2F}"
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "MiniJson", "MiniJson\MiniJson.fsproj", "{68C7233E-B616-4233-A3B8-6881F11DFB2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
