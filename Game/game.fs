@@ -117,7 +117,7 @@ type KifuStep = {
     Next : KifuStep list
 }
 
-type KifuNode = |KifuRoot of Cross |KifuNext of KifuStep
+type KifuRoot = KifuStep list
 
 type KifuCursor = {
     Track : int list
@@ -128,7 +128,7 @@ type KifuCursor = {
 type GameRound = {
     Path  : string
     Count : int
-    Root  : KifuStep list
+    Root  : KifuRoot
 }
 
 type KifuState = {
@@ -243,18 +243,20 @@ let putSimple (r:int) (c:int) (tk:int) (state:KifuState) (init:CrossPoint [,]) :
         Cursor = { state.Cursor with Track = track; Branch = 0; }
     }
 
-let rec applyStep (root:KifuStep) (track:int list) (apply:KifuStep->KifuStep) : KifuStep =
+let rec applyStep (root:KifuRoot) (track:int list) (map:KifuStep->KifuStep) : KifuRoot =
     match track with
     | [] -> root
     | k::t ->
-        if k >= (List.length root.Next) then failwith "parameter out range"
-        let next =
-            root.Next |> List.mapi (fun (i:int) (step:KifuStep) ->
-                match i<>k with
-                | true -> step
-                | _ ->
-                    match t with | [] -> apply step | t -> applyStep step t apply )
-        { root with Next = next }
+        if k >= (List.length root) then failwith "parameter out range"
+        root |> List.mapi (fun (i:int) (step:KifuStep) ->
+            match i<>k with
+            | true -> step
+            | _ ->
+                match t with
+                | [] -> map step
+                | t  ->
+                    let next = applyStep step.Next t map
+                    { step with Next = next } )
 
 let putStep waycnt r c tk (state:KifuState) =
     let track = state.Cursor.Track
@@ -335,7 +337,11 @@ with
             let current = putSimple r c tk x.Current x.Restore.Board
             { x with Current = current }
 
-    member x.SetNote (note:string) = ()
+    member x.SetNote (note:string) =
+        let root = applyStep x.Current.KfNext x.Current.Cursor.Track (fun (step:KifuStep) ->
+            let curr = { step.Curr with Note = Some(note) }
+            { step with Curr = curr } )
+        { x with Current = { x.Current with KfNext = root } }
 
     member x.BeginVariety() =
         let current = GameData.Init [] x.Current.Board
