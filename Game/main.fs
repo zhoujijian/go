@@ -68,34 +68,38 @@
             drawBoard ((!play).Current.Board) true ((initSeq (!play).Restore.Board) + 1)
             drawBoard ((!play).Restore.Board) false 0 // restore board overwrite current board
         
-        let showBranch() =
+        let refresh() =
             form.lstVariety.Items.Clear()
             for i in 0..(!play).NextBranchCount-1 do
                 form.lstVariety.Items.Add(i.ToString()) |> ignore
-
             if form.lstVariety.Items.Count > 0 then
                 form.lstVariety.SelectedIndex <- 0
+
+            match (!play).GetCurrentNote() with
+            | None -> form.textComment.Text <- null
+            | Some(note) -> form.textComment.Text <- note
+            form.panelDraw.Invalidate()
 
         let onPut (e:MouseEventArgs) =
             let r = e.X/30
             let c = e.Y/30
             if r>=0 && r<=18 && c>=0 && c<=18 then
                 play := (!play).Put r c
-                showBranch()
-                form.panelDraw.Invalidate()
+                refresh()
 
         form.panelDraw.Paint.Add(onDraw)
 
         form.butNext.Click.Add(fun e ->
             if form.lstVariety.SelectedIndex >= 0 then
                 play := (!play).Next form.lstVariety.SelectedIndex
-                showBranch()
-                form.panelDraw.Invalidate() )
+                refresh() )
 
         form.butPrev.Click.Add(fun e ->
             play := (!play).Prev()
-            showBranch()
-            form.panelDraw.Invalidate() )
+            refresh() )
+
+        form.butSetNote.Click.Add(fun e ->
+            play := (!play).SetNote form.textComment.Text )
 
         let opendlg = new OpenFileDialog()
         let savedlg = new SaveFileDialog()
@@ -126,14 +130,13 @@
                     Count = 19
                     Root  = root
                 }
-                showBranch()
+                refresh()
 
                 form.panelRoot.Enabled       <- true
                 form.panelVariety.Enabled    <- true
                 form.butResearch.Enabled     <- true
                 form.butSaveResearch.Enabled <- true
                 form.lstVariety.Enabled      <- true
-                form.panelDraw.Invalidate()
 
                 releasePutClick()
 
@@ -157,14 +160,14 @@
                                 form.lstVariety.Enabled <- true
                                 releasePutClick()
                                 play := (!play).CancelVariety()
-                                showBranch()
+                                refresh()
                         | _ ->
                             form.butResearch.Text <- RESEARCH
                             form.butSaveResearch.Enabled <- false
                             form.lstVariety.Enabled <- true
                             releasePutClick()
                             play := (!play).SaveVariety()
-                            showBranch()
+                            refresh()
 
                         form.panelDraw.Invalidate()
                         return! loopHandle()
@@ -188,7 +191,7 @@
                 Count = 19
                 Root  = []
             }
-            showBranch() )
+            refresh() )
 
         Application.Run(form)
 

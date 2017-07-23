@@ -188,7 +188,7 @@ let initSeq (board : CrossPoint[,]) =
             if max < seq then max <- seq
     max
 
-let nextStep nextk state init =
+let nextStep (nextk:int) (state:KifuState) (init:CrossPoint[,]) =
     let cursor = state.Cursor
     match state.KfNext with
     | [] -> state
@@ -248,7 +248,7 @@ let rec applyStep (root:KifuRoot) (track:int list) (map:KifuStep->KifuStep) : Ki
     | [] -> root
     | k::t ->
         if k >= (List.length root) then failwith "parameter out range"
-        root |> List.mapi (fun (i:int) (step:KifuStep) ->
+        root |> List.mapi (fun i (step:KifuStep) ->
             match i<>k with
             | true -> step
             | _ ->
@@ -342,6 +342,20 @@ with
             let curr = { step.Curr with Note = Some(note) }
             { step with Curr = curr } )
         { x with Current = { x.Current with KfNext = root } }
+
+    member x.GetCurrentNote() : Option<string> =
+        let rec getnote (root:KifuStep list) track =
+            match track with
+            | [] -> failwith "track out limit"
+            | head::tail ->
+                let next = root |> List.item head
+                match tail with
+                | [] -> next.Curr.Note
+                | _  -> getnote next.Next tail
+
+        match x.Current.Cursor.Track with
+        | [] -> None
+        | track -> getnote x.Current.KfNext track
 
     member x.BeginVariety() =
         let current = GameData.Init [] x.Current.Board
