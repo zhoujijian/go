@@ -1,9 +1,8 @@
-﻿open GoWin
-open Game
-open Kifu
-open GamePlay.AsyncExtensions
-
-module GoGame =
+﻿module GoGame
+    open GoWin
+    open Game
+    open Kifu
+    open GamePlay.AsyncExtensions
     open System
     open System.Windows.Forms
     open System.Drawing
