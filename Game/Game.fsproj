@@ -57,8 +57,8 @@
     <Compile Include="AsyncExtensions.fs" />
     <Compile Include="game.fs" />
     <Compile Include="kifu.fs" />
-    <Compile Include="fmtsgf.fs" />
     <Compile Include="main.fs" />
+    <Compile Include="fmtsgf.fs" />
     <None Include="App.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
