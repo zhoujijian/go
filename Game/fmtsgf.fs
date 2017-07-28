@@ -1,9 +1,7 @@
 ﻿module FmtSGF
-    #if INTERACTIVE
-    #load "FParsec"
-    #endif
-
     open FParsec
+
+    type GameNode = { Row:int; Col:int; Note:Option<string> }
 
     let ws = spaces
     let str s = pstring s
@@ -14,7 +12,6 @@
         match run parser text with
         | Success(result, _, _) -> printfn "Success: %A" result
         | Failure(error, _, _)  -> printfn "Failure: %A" error
-        System.Console.ReadLine() |> ignore
 
     let PComment =
         let norm = satisfy (fun c -> c <> '\\' && c <> ']')
@@ -23,23 +20,31 @@
         between left riht (manyChars norm)
 
     let PMove =
-        let az = satisfy (fun c -> c >= 'a' && c <= 'z')
+        let chars = "abcdefghijklmnopqrs"
+        let check = satisfy (fun c -> chars.Contains(string c))
         let left = strws "["
-        let riht = wsstr "]"
-        between left riht (pipe2 az az (fun a b -> string a + string b))
+        let riht = wsstr "]"        
+        between left riht (pipe2 check check (fun a b ->
+            let row = chars.IndexOf(a)
+            let col = chars.IndexOf(b)
+            (row, col) ))
 
     let PNode =
+        pipe2 PMove (opt PComment) (fun (r, c) note ->
+            { Row=r; Col=c; Note=note } )
+
+    let PNodes =
         let semicolon = str ";"
-        let node = sepBy PMove semicolon
-        node
+        semicolon >>. (sepBy PNode semicolon)
 
-    Run PComment "C[this is simple comment text.]"
+    let PTree, PTreeRef = createParserForwardedToRef()
+    do PTreeRef :=
+        let left = strws "("
+        let riht = wsstr ")"
+        between left riht (PNodes .>> (many PTree))
+
+    Run PComment "C[comment text.]"
     Run PMove "[ad]"
-    Run PNode ";[ad];[cf]"
-
-    type Move = { Row : int; Col : int }
-
-    type Node = { Move:float32 }
-    type SGF =
-        | Node
-        | Tree of Node list
+    Run PNodes ";[ad]C[not too bad];[cf]"
+    // Run PTree "(;[ad];[cf](;[hh]))"
+    System.Console.ReadLine() |> ignore
