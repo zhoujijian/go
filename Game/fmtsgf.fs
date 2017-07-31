@@ -1,7 +1,6 @@
 ﻿module FmtSGF
     open FParsec
-
-    type GameNode = { Row:int; Col:int; Note:Option<string> }
+    open Game
 
     let ws = spaces
     let str s = pstring s
@@ -13,25 +12,29 @@
         | Success(result, _, _) -> printfn "Success: %A" result
         | Failure(error, _, _)  -> printfn "Failure: %A" error
 
+    let PL = str "["
+    let PR = str "]"
+
     let PComment =
         let norm = satisfy (fun c -> c <> '\\' && c <> ']')
-        let left = strws "C" >>. str "["
-        let riht = str "]"
+        let left = str "C" >>. PL
+        let riht = PR
         between left riht (manyChars norm)
 
     let PMove =
         let chars = "abcdefghijklmnopqrs"
         let check = satisfy (fun c -> chars.Contains(string c))
-        let left = strws "["
-        let riht = wsstr "]"        
-        between left riht (pipe2 check check (fun a b ->
+        let side = anyOf "BW" |>> (fun c -> match c with | 'B' -> 0 | 'W' -> 1 | _ -> failwith "unknown property")
+        let left = str "["
+        let riht = str "]"
+        pipe3 side (PL >>. check) (check .>> PR) (fun seq a b ->
             let row = chars.IndexOf(a)
             let col = chars.IndexOf(b)
-            (row, col) ))
+            (row, col, seq))
 
     let PNode =
-        pipe2 PMove (opt PComment) (fun (r, c) note ->
-            { Row=r; Col=c; Note=note } )
+        pipe2 PMove (opt PComment) (fun (row, col, seq) note ->
+            { Row=row; Col=col; Seq=seq; Note=note } )
 
     let PNodes =
         let semicolon = str ";"
