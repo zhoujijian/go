@@ -38,16 +38,35 @@
 
     let PNodes =
         let semicolon = str ";"
-        semicolon >>. (sepBy PNode semicolon)
+        semicolon >>. (sepBy PNode semicolon) |>> fun (crosses:Cross list) ->
+            let rec chain (crosses:Cross list) =
+                match crosses with
+                | [] -> None
+                | h::t ->
+                    let next = chain t
+                    let step = { Curr=h; Next=match next with | None -> [] | Some t -> [t] }
+                    Some(step)
+            crosses |> chain
 
     let PTree, PTreeRef = createParserForwardedToRef()
     do PTreeRef :=
-        let left = strws "("
-        let riht = wsstr ")"
-        between left riht (PNodes .>> (many PTree))
+        let root = pipe2 PNodes (many PTree) (fun root children ->
+            let nexts =
+                children |> List.filter (fun c -> match c with | Some _ -> true | _ -> false)
+                         |> List.map (fun (Some t) -> t)
+            match root with
+            | None   -> None
+            | Some t ->
+                let rec chain (curr:KifuStep) =
+                    match curr.Next with
+                    | []    -> { curr with Next = nexts }
+                    | h::[] -> { curr with Next = [chain h] }
+                    | _     -> failwith "error: next more than 1"
+                t |> chain |> Some )
+        root |> between (str "(") (str ")")
 
     Run PComment "C[comment text.]"
-    Run PMove "[ad]"
-    Run PNodes ";[ad]C[not too bad];[cf]"
-    // Run PTree "(;[ad];[cf](;[hh]))"
+    Run PMove "B[ad]"
+    Run PNodes ";B[ad]C[not too bad];W[cf]"
+    Run PTree "(;B[ad];W[cf](;W[hh])(;W[ij]))"
     System.Console.ReadLine() |> ignore
