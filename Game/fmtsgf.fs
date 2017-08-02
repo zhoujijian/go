@@ -5,7 +5,11 @@
     let UpperCaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     let LowerCaseChars = "abcdefghijklmnopqrs"
 
-    type Property = { Indent : string; Values : string list }
+    type IndentValue = { Indent : string; Values : string list }
+    type Property =
+        | Comment of string
+        | Move of int * int
+        | Unknown of IndentValue
     type Node     = { Properties : Property list }
     type Sequence = { Nodes : Node list }
     type GameTree = { VartMain : Sequence; VartChildren : GameTree list }
@@ -24,9 +28,19 @@
     let PR = str "]"
     let PPropertyIndent = many1Satisfy (fun c -> UpperCaseChars.Contains(string c))
     let PPropertyValue  = between PL PR (manyChars (satisfy (fun c -> c <> '\\' && c <> ']')))
-    let PProperty       = pipe2 PPropertyIndent (many1 PPropertyValue) (fun indent values -> { Indent=indent; Values=values })
-    let PNode           = str ";" >>. (many PProperty) |>> fun (properties:Property list) -> { Properties = properties }
-    let PSequence       = many1 PNode |>> fun (nodes:Node list) -> { Nodes = nodes }
+    let PProperty       = pipe2 PPropertyIndent (many1 PPropertyValue) (fun indent values ->
+        match indent with
+        | "C" -> match values with | h::t -> Comment(h) | _ -> Comment("")
+        | side when indent = "B" || indent = "W" ->
+            let position = values |> List.exactlyOne
+            let chars = "abcdefghijklmnopqrs"
+            let row = chars.IndexOf(string position.[0])
+            let col = chars.IndexOf(string position.[1])
+            Move(row, col)
+        | _ -> Unknown({ Indent = indent; Values = values }) )
+
+    let PNode     = str ";" >>. (many PProperty) |>> fun (properties:Property list) -> { Properties = properties }
+    let PSequence = many1 PNode |>> fun (nodes:Node list) -> { Nodes = nodes }
     let PGameTree, PGameTreeRef = createParserForwardedToRef()
     do PGameTreeRef :=
         let root = pipe2 PSequence (many PGameTree) (fun sequence trees ->
