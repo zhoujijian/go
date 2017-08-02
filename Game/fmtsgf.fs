@@ -2,6 +2,14 @@
     open FParsec
     open Game
 
+    let UpperCaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    let LowerCaseChars = "abcdefghijklmnopqrs"
+
+    type Property = { Indent : string; Values : string list }
+    type Node     = { Properties : Property list }
+    type Sequence = { Nodes : Node list }
+    type GameTree = { VartMain : Sequence; VartChildren : GameTree list }
+
     let ws = spaces
     let str s = pstring s
     let strws s = str s .>> ws
@@ -14,7 +22,18 @@
 
     let PL = str "["
     let PR = str "]"
+    let PPropertyIndent = many1Satisfy (fun c -> UpperCaseChars.Contains(string c))
+    let PPropertyValue  = between PL PR (manyChars (satisfy (fun c -> c <> '\\' && c <> ']')))
+    let PProperty       = pipe2 PPropertyIndent (many1 PPropertyValue) (fun indent values -> { Indent=indent; Values=values })
+    let PNode           = str ";" >>. (many PProperty) |>> fun (properties:Property list) -> { Properties = properties }
+    let PSequence       = many1 PNode |>> fun (nodes:Node list) -> { Nodes = nodes }
+    let PGameTree, PGameTreeRef = createParserForwardedToRef()
+    do PGameTreeRef :=
+        let root = pipe2 PSequence (many PGameTree) (fun sequence trees ->
+            { VartMain = sequence; VartChildren = trees } )
+        root |> between (str "(") (str ")")
 
+    (*
     let PComment =
         let norm = satisfy (fun c -> c <> '\\' && c <> ']')
         let left = str "C" >>. PL
@@ -64,9 +83,11 @@
                     | _     -> failwith "error: next more than 1"
                 t |> chain |> Some )
         root |> between (str "(") (str ")")
-
-    Run PComment "C[comment text.]"
+    
     Run PMove "B[ad]"
     Run PNodes ";B[ad]C[not too bad];W[cf]"
     Run PTree "(;B[ad];W[cf](;W[hh])(;W[ij]))"
+    *)
+
+    Run PGameTree "(;B[ad];W[cf](;W[hh])(;W[ij]))"
     System.Console.ReadLine() |> ignore
